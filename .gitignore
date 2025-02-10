@@ -1,0 +1,21 @@
+# Ignorar los módulos de Node
+node_modules/
+
+# Ignorar package-lock.json
+package-lock.json
+
+#ignora las variables de entorno
+.env
+
+#ignorar public
+.public/
+
+#se ignora el inventario
+inventory/
+
+#ignora los update
+updates/
+
+#ignora las fotos
+fotos_frutas/
+
