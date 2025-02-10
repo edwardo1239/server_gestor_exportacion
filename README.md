@@ -68,13 +68,13 @@ MONGODB_PROCESO = "mongodb://localhost:27017/proceso"
 MONGODB_SISTEMA = "mongodb://localhost:27017/sistema"
 
 # acces token
-ACCES_TOKEN = 65fa5383a192707f19c3d50fad26604d24f8fce15725caa8c2c3390385cc5004f45910d9e08b624a5fd41c107880bc19b0182a504e7943d158bee8b9f400320b
-REFRESH_TOKEN = e57d4ca7be0fb32467ca36ff851978fe5e64d9c1aea3154783bb08ec8dd56f442f2d891e2dbbff8aa2cfc5f7e7fbd9b7172992f06d6d2a02231ff8c36e645e07
+ACCES_TOKEN = 
+REFRESH_TOKEN = 
 
 # salt
 SALT_ROUNDS = 10
 
-# Salt AES_SECRET = 0ae245e2d7a589914b9725e714a2a8fb9149096f173dc0e9cddd7530a6cfa6ad
+# Salt AES_SECRET = 
 ```
 
 ### 6. Modificar la configuración de MongoDB
