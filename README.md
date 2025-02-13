@@ -69,7 +69,10 @@ MONGODB_SISTEMA = "mongodb://localhost:27017/sistema"
 
 # acces token
 ACCES_TOKEN = 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 868ab14bcaf8c904fe5e6383d98ed4587b8ac3bd
 REFRESH_TOKEN = 
 
 # salt
