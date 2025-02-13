@@ -149,14 +149,6 @@ async function sendData(data) {
     io.emit('servidor', data)
 };
 
-// #region events
-// procesoEventEmitter.on('orden_vaceo_update', (data) => {
-//     try {
-//         io.emit("orden_vaceo_update", data);
-//     } catch (error) {
-//         console.error('Error en orden_vaceo_update:', error);
-//     }
-// });
 procesoEventEmitter.on('predio_vaciado', (data) => {
     console.log(data)
     try {
@@ -179,14 +171,6 @@ procesoEventEmitter.on('status_proceso', (data) => {
         console.error('Error en status_proceso:', error);
     }
 })
-// procesoEventEmitter.on('inventario_fruta_sin_procesar', (data) => {
-//     try {
-//         console.log("desde el emit a el cliente")
-//         io.emit("inventario_fruta_sin_procesar", data);
-//     } catch (error) {
-//         console.error('Error en inventario_fruta_sin_procesar:', error);
-//     }
-// });
 procesoEventEmitter.on('proceso_event', (data) => {
     try {
         io.emit("proceso_event", data);
@@ -201,14 +185,6 @@ procesoEventEmitter.on('server_event', (data) => {
         console.error('Error en nuevo_predio:', error);
     }
 })
-// procesoEventEmitter.on('nuevo_predio', (data) => {
-//     try {
-//         io.emit("nuevo_predio", data);
-//     } catch (error) {
-//         console.error('Error en nuevo_predio:', error);
-//     }
-// })
-
 
 io.on("connection", socket => {
     console.log("an user has connected");
@@ -319,13 +295,13 @@ server.listen(3011, () => {
 // cron.schedule('0 7 * * *', async () => {
 //     await IndicadoresAPIRepository.post_indicadores_eficiencia_operativa_registro();
 // });
-cron.schedule('15 9 * * *', async () => {
+cron.schedule('10 5 * * *', async () => {
     await IndicadoresAPIRepository.post_indicadores_eficiencia_operativa_registro();
 
 });
 
 //Kilos procesados al finalizar el dia
-cron.schedule('17 16 * * *', async () => {
+cron.schedule('0 5 * * *', async () => {
     await IndicadoresAPIRepository.sys_indicadores_eficiencia_operativa_kilos_procesados();
     await ProcesoRepository.reiniciarValores_proceso();
 
