@@ -87,7 +87,7 @@ class LotesRepository {
             await record.save()
             return lote_obj;
         } catch (err) {
-            throw new PutError(414, `Error al modificar el dato ${id} => ${err.name} `);
+            throw new PutError(523, `Error ${err.name} -- ${id} - ${query}`);
         } finally {
             bussyIds.delete(id);
         }
@@ -112,7 +112,7 @@ class LotesRepository {
             await record.save()
             return lote_obj;
         } catch (err) {
-            throw new PutError(414, `Error al modificar el dato  ${err.name}`);
+            throw new PutError(523, `Error  ${err.name}`);
         }
     }
     static async rendimiento(data) {
@@ -171,7 +171,7 @@ class LotesRepository {
             return deshidratacion;
 
         } catch (err) {
-            throw new ProcessError(415, `Error sumando los descartes ${err.message}`);
+            throw new ProcessError(515, `Error sumando los descartes ${err.message}`);
         } finally {
             bussyIds.delete(id);
         }
@@ -212,7 +212,7 @@ class LotesRepository {
             const base64Image = data.toString('base64');
             return base64Image
         } catch (err) {
-            throw new ProcessError(416, `Error obteniendo la imagen ${err.message}`);
+            throw new ProcessError(525, `Error obteniendo la imagen ${err.message}`);
         }
     }
     static async eliminar_lote(id, user, action) {
@@ -234,7 +234,15 @@ class LotesRepository {
             const count = await db.Lotes.countDocuments(filtro);
             return count;
         } catch (err) {
-            throw new ConnectionDBError(520, `Error obteniendo cantidad lotes ${filtro} --- ${err.message}`);
+            throw new ConnectionDBError(524, `Error obteniendo cantidad lotes ${filtro} --- ${err.message}`);
+        }
+    }
+    static async bulkWrite(operations) {
+        try {
+            const result = await db.Lotes.bulkWrite(operations)
+            return result;
+        } catch (error) {
+            throw new ConnectionDBError(523, `Error performing bulkWrite ${error.message} `);
         }
     }
     static descarteTotal(descarte) {

@@ -4,7 +4,8 @@ const { ProcessError, ItemBussyError } = require("../../Error/ProcessError");
 const { oobtener_datos_lotes_to_listaEmpaque } = require("../mobile/utils/contenedoresLotes");
 let bussyIds = new Set();
 let lockedItems = new Map();
-
+const fs = require('fs')
+const path = require("path");
 class ContenedoresRepository {
 
     static lockItem(_id, elemento, pallet = -1) {
@@ -13,7 +14,6 @@ class ContenedoresRepository {
             throw new ItemBussyError(413, 'El elemento ya está bloqueado');
         }
         lockedItems.set(key, Date.now());
-        console.log(lockedItems)
     }
     static unlockItem(_id, elemento, pallet = 0) {
         const key = `${_id}:${elemento}:${pallet}`
@@ -21,23 +21,24 @@ class ContenedoresRepository {
     }
 
 
-    static async crearContenedor(data) {
+    static async crearContenedor(data, user) {
         /**
          * Función que crea un nuevo contenedor en la base de datos de MongoDB.
          *
-         * @param {Object} data - Objeto que contiene la información del contenedor y del usuario.
-         * @param {Object} data.data - Información del contenedor a crear.
-         * @param {Object} data.user - Información del usuario que realiza la operación.
+         * @param {Object} data - Información del contenedor a crear.
+         * @param {Object} user - Información del usuario que realiza la operación.
          * @returns {Promise<void>} - Promesa que se resuelve cuando el contenedor ha sido creado y registrado.
          * @throws {ProcessError} - Lanza un error si ocurre un problema al crear el contenedor.
          */
         try {
-            const contenedor = new db.Contenedores(data.data.data);
+            const contenedor = new db.Contenedores(data);
             const contenedorGuardado = await contenedor.save();
 
-            let record = new db.recordContenedores({ operacionRealizada: 'crearContenedor', user: data.user.user, documento: contenedorGuardado })
+            let record = new db.recordContenedores({
+                operacionRealizada: 'crearContenedor', user: user, documento: contenedorGuardado
+            })
             await record.save();
-
+            return contenedorGuardado
         } catch (err) {
             throw new ProcessError(421, `Error creando contenedor: ${err.name}`);
 
@@ -88,7 +89,7 @@ class ContenedoresRepository {
             return contenedores
 
         } catch (err) {
-            throw new ConnectionDBError(520, `Error obteniendo contenedores ${options} --- ${err.message}`);
+            throw new ConnectionDBError(522, `Error obteniendo contenedores ${options} --- ${err.message}`);
         }
     }
     static async getContenedores(options = {}) {
@@ -137,56 +138,10 @@ class ContenedoresRepository {
             return response
 
         } catch (err) {
-            throw new ConnectionDBError(408, `Error obteniendo contenedores ${err.message}`);
+            throw new ConnectionDBError(522, `Error contenedores ${err.message}`);
         }
     }
-    static async agregar_settings_pallet(id, pallet, settings, action, user) {
-        /**
-         * Función que agrega o actualiza la configuración de un pallet en un contenedor.
-         *
-         * @param {string} id - ID del contenedor en el que se va a actualizar el pallet.
-         * @param {string} pallet - Identificador del pallet dentro del contenedor.
-         * @param {Object} settings - Objeto con los ajustes del pallet.
-         * @param {string} settings.tipoCaja - Tipo de caja del pallet.
-         * @param {string} settings.calidad - Calidad del pallet.
-         * @param {string} settings.calibre - Calibre del pallet.
-         * @param {string} action - Acción realizada para registrar en el historial.
-         * @param {string} user - Usuario que realiza la acción.
-         * @returns {Promise<void>} - Promesa que se resuelve cuando la operación se completa.
-         * @throws {ConnectionDBError} - Lanza un error si ocurre un problema al actualizar el pallet.
-         */
-        try {
-            this.lockItem(id, "pallets", pallet)
 
-            const contenedor = await db.Contenedores.findById({ _id: id });
-            if (!contenedor) throw new ConnectionDBError(407, "La busqueda de contenedores retorna null")
-
-            contenedor.pallets[pallet].get("settings").tipoCaja = settings.tipoCaja;
-            contenedor.pallets[pallet].get("settings").calidad = settings.calidad;
-            contenedor.pallets[pallet].get("settings").calibre = settings.calibre;
-            await db.Contenedores.updateOne({ _id: id }, {
-                $set: { [`pallets.${pallet}`]: contenedor.pallets[pallet] }
-            });
-
-
-            let record = new db.recordContenedores({
-                operacionRealizada: action,
-                user: user,
-                documento: {
-                    contenedor: id,
-                    pallet: pallet,
-                    settings: settings
-                }
-            })
-            await record.save();
-            return contenedor
-
-        } catch (err) {
-            throw new ConnectionDBError(408, `Error guardando la configuracion del pallet ${err.message}`);
-        } finally {
-            this.unlockItem(id, "pallets", pallet)
-        }
-    }
     static async actualizar_pallet_contenedor(id, pallet, item, action, user) {
         /**
          * Función que actualiza un pallet en un contenedor agregando un nuevo item.
@@ -534,7 +489,6 @@ class ContenedoresRepository {
                 { $set: { [`pallets.${pallet1}`]: contenedor.pallets[pallet1] } }
             );
 
-            console.log(itemRecord)
             pilaFunciones.push({
                 funcion: "borrar_item_pallet",
                 datos: {
@@ -684,7 +638,7 @@ class ContenedoresRepository {
             })
             await record.save();
         } catch (err) {
-            throw new ConnectionDBError(408, `Error cerrando el contenedor ${err.message}`);
+            throw new ConnectionDBError(523, `Error cerrando el contenedor ${err.message}`);
         } finally {
             bussyIds.delete(id);
         }
@@ -727,6 +681,7 @@ class ContenedoresRepository {
             this.unlockItem(id, "pallets", pallet)
         }
     }
+
     static async modificar_contenedor(id, query, user, action, __v) {
         /**
          * Modifica un contenedor en la base de datos de MongoDB.
@@ -776,17 +731,18 @@ class ContenedoresRepository {
             return contenedor_obj;
         } catch (err) {
             console.error(err)
-            throw new PutError(524, `Error al modificar el contenedor ${id} -- query ${query} `);
+            throw new PutError(523, `Error contenedores ${id} -- query ${query} `);
         } finally {
             this.unlockItem(id, "Contenedor", "general")
         }
     }
+
     static async obtener_cantidad_contenedores(filtro = {}) {
         try {
             const count = await db.Contenedores.countDocuments(filtro);
             return count;
         } catch (err) {
-            throw new ConnectionDBError(520, `Error obteniendo cantidad contenedores ${filtro} --- ${err.message}`);
+            throw new ConnectionDBError(524, `Error obteniendo cantidad contenedores ${filtro} --- ${err.message}`);
         }
     }
     static validateBussyIds(id) {
@@ -797,6 +753,75 @@ class ContenedoresRepository {
          */
         if (bussyIds.has(id)) throw new ItemBussyError(413, "Elemento no disponible por el momento");
         bussyIds.add(id)
+    }
+
+
+
+    static async actualizar_contenedor(filter, update, options = {}, session = null) {
+        /**
+         * Función genérica para actualizar documentos en MongoDB usando Mongoose
+         *
+         * @param {Model} model - Modelo Mongoose (db.Contenedores, etc.)
+         * @param {Object} filter - Objeto de filtrado para encontrar el documento
+         * @param {Object} update - Objeto con los campos a actualizar
+         * @param {Object} options - Opciones adicionales de findOneAndUpdate (opcional)
+         * @param {ClientSession} session - Sesión de transacción (opcional)
+         * @returns Documento actualizado
+         */
+        const defaultOptions = { new: true }; // retorna el documento actualizado
+        const finalOptions = session
+            ? { ...defaultOptions, ...options, session }
+            : { ...defaultOptions, ...options };
+
+        try {
+            const documentoActualizado = await db.Contenedores.findOneAndUpdate(
+                filter,
+                update,
+                finalOptions
+            );
+            return documentoActualizado;
+        } catch (err) {
+            throw new ConnectionDBError(523, `Error modificando los datos${err.message}`);
+
+        }
+    }
+    static async bulkWrite(operations) {
+        try {
+            const result = await db.Contenedores.bulkWrite(operations)
+            return result;
+        } catch (error) {
+            throw new ConnectionDBError(523, `Error performing bulkWrite ${error.message} `);
+        }
+    }
+    static async obtener_archivos_contenedores(url) {
+        try {
+            const data = fs.readFileSync(url)
+            const extension = path.extname(url).toLowerCase();
+
+            // 3. Según la extensión, decide el mimeType
+            let mimeType = "application/octet-stream"; // por defecto
+            let fileName = "archivo";
+
+            if (extension === ".pdf") {
+                mimeType = "application/pdf";
+                fileName = "documento.pdf";
+            } else if (extension === ".png") {
+                mimeType = "image/png";
+                fileName = "imagen.png";
+            } else if (extension === ".jpg" || extension === ".jpeg") {
+                mimeType = "image/jpeg";
+                fileName = "imagen.jpg";
+            }
+
+            const base64 = data.toString('base64');
+            return {
+                documento: base64,
+                mimeType,
+                fileName
+            }
+        } catch (err) {
+            throw new ProcessError(525, `Error obteniendo la imagen ${err.message}`);
+        }
     }
 }
 

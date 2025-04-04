@@ -4,28 +4,12 @@ const { Schema } = mongoose;
 
 const defineproveedores = async (conn) => {
 
-  const LimonPrecioSchema = new Schema({
-    "1": { type: Number, default: 0 },
-    "15": { type: Number, default: 0 },
-    "2": { type: Number, default: 0 },
-    frutaNacional: { type: Number, default: 0 },
-    descarte: { type: Number, default: 0 },
-    combinado: { type: Number, default: 0 },
-  }, { _id: false, strict: false })
-
-  const NaranjaPrecioSchema = new Schema({
-    "1": { type: Number, default: 0 },
-    "15": { type: Number, default: 0 },
-    "2": { type: Number, default: 0 },
-    frutaNacional: { type: Number, default: 0 },
-    descarte: { type: Number, default: 0 },
-    zumex: { type: Number, default: 0 },
-  }, { _id: false, strict: false })
 
   const PrecioSchema = new Schema({
-    Limon: LimonPrecioSchema,
-    Naranja: NaranjaPrecioSchema,
-    fecha: { type: Date, default: Date.now }
+    any: {
+      type: Map,
+      of: { type: Schema.Types.ObjectId, ref: 'precio' }
+    },
   }, { _id: false, strict: false });
 
   const GGNSchema = new Schema({
@@ -76,16 +60,11 @@ const defineproveedores = async (conn) => {
     propietario: String,
     razon_social: String,
     nit_facturar: String,
+    precioFijo: Boolean,
+    departamento: String,
+    municipio: String,
+    canastillas: Number
 
-
-    //Borrar datos
-    ICA_temp: String,
-    // ICA: String,
-    "FECHA VENCIMIENTO GGN": String,
-    N: Boolean,
-    L: Boolean,
-    M: Boolean,
-    alt: String
   });
 
   // Middleware pre-save para establecer alt = _id en la creación inicial

@@ -1,0 +1,11 @@
+
+GET https://operativo.celifrut.com/API/get_data_lotes
+Content-Type: application/json
+
+{
+    "data":{
+        "user": "edwarsthat",
+        "password": "calidadstopyse"
+    }
+}
+

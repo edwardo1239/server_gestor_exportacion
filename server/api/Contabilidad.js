@@ -7,7 +7,6 @@ class ContabilidadRepository {
         const query = {
             enf: { $regex: '^E', $options: 'i' },
             aprobacionComercial: true,
-            exportacionDetallada: { $exists: true }
         }
         const lotes = await LotesRepository.getLotes({
             query: query,
@@ -18,6 +17,7 @@ class ContabilidadRepository {
                 calidad: 1,
                 __v: 1,
                 deshidratacion: 1,
+                directoNacional: 1,
                 kilos: 1,
                 contenedores: 1,
                 calidad1: 1,
@@ -41,8 +41,10 @@ class ContabilidadRepository {
 
             },
             limit: resultsPerPage,
-            populate: { path: 'predio', select: 'PREDIO ICA DEPARTAMENTO GGN precio' }
-
+            populate: [
+                { path: 'predio', select: 'PREDIO ICA DEPARTAMENTO GGN precio' },
+                { path: 'precio', select: '1 2 15 frutaNacional descarte' }
+            ]
         })
         return lotes
     }

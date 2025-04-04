@@ -5,22 +5,25 @@ const permisos_generales = [
     "obtener_status_proceso",
     "obtener_info_mi_cuenta",
     "modificar_mi_password",
-    "get_calidad_formularios_higienePersonal_numeroElementos",
-    "get_calidad_formularios_limpiezaMensual_numeroElementos",
-    "get_calidad_formularios_controlPlagas_numeroElementos",
+    "get_calidad_formulario_limpiezaDiaria_numeroElementos",
+    "get_calidad_formulario_limpiezaMensual_numeroElementos",
+    "get_calidad_formulario_controlPlagas_numeroElementos",
     "obtener_cantidad_usuarios",
-    "obtener_cantidad_contenedores",
+    "get_inventarios_historiales_listasDeEmpaque_numeroRegistros",
     "obtener_cantidad_historial_espera_descargue",
     "obtener_cantidad_historial_ingreso_inventario",
+    "get_comercial_precios_cantidad_registros",
+    "get_comercial_formularios_reclamacionesCalidad_numeroElementos",
+
     "get_info_formulario_inspeccion_fruta",
     "get_transporte_registros_programacion_mula_numeroElementos",
     "get_transporte_registros_exportacion_numeroElementos",
     "get_transporte_registros_inspeccionMula_numeroElementos",
     "get_transporte_documentos_programacionMulas_numeroElementos",
-    "get_inventario_historiales_ingresoFruta_numeroElementos",
+    "get_inventarios_historiales_ingresoFruta_numeroElementos",
     "get_inventarios_numero_registros_fruta_descompuesta",
     "get_calidad_historial_calidadInterna_numeroElementos",
-    "get_calidad_informes_calidad_informe_proveedor_numero_datos",
+    "get_calidad_informes_informeProveedor_numeroElementos",
     "get_indicadores_proceso_numero_items",
     "get_comercial_proveedores_numero_elementos",
     "get_inventarios_historiales_lista_empaque_proveedores",
@@ -34,7 +37,10 @@ const permisos_generales = [
     "Get_info_update_app_desktop",
 
     //obtener los proveedores para desplegables
-    "get_sys_proveedores"
+    "get_sys_proveedores",
+    "get_data_tipoFruta",
+    "get_data_clientes",
+    "get_data_cargos"
 ]
 
 class UserRepository {
@@ -55,7 +61,7 @@ class UserRepository {
         if (user.user < 3) throw new ValidationUserError(401, "El usuario debe tener mas de 3 letras")
     }
     static generateAccessToken(data) {
-        return jwt.sign(data, process.env.ACCES_TOKEN, { expiresIn: '5h' })
+        return jwt.sign(data, process.env.ACCES_TOKEN, { expiresIn: '8h' })
     }
     static async authenticateTokenSocket(socket, next) {
 

@@ -14,7 +14,6 @@ class ProveedoresRepository {
                 return { status: 200, message: "OK", data: proveedores };
             }
         } catch (err) {
-            // console.log(data);
             throw new ConnectionDBError(408, `Error obteniendo predio ${err.message}`);
         }
     }
@@ -83,7 +82,7 @@ class ProveedoresRepository {
 
 
         } catch (err) {
-            throw new PutError(414, `Error al modificando los lotes ${err.essage}`);
+            throw new PutError(522, `Error al modificando los proveedores ${err.essage}`);
         }
     }
     static async addProveedor(data, user) {
@@ -98,6 +97,33 @@ class ProveedoresRepository {
             throw new PostError(521, `Error agregando proveedor ${err.message}`);
         }
 
+    }
+    static async actualizar_proveedor(filter, update, options = {}, session = null) {
+        /**
+         * Función genérica para actualizar documentos en MongoDB usando Mongoose
+         *
+         * @param {Model} model - Modelo Mongoose (db.clientes, etc.)
+         * @param {Object} filter - Objeto de filtrado para encontrar el documento
+         * @param {Object} update - Objeto con los campos a actualizar
+         * @param {Object} options - Opciones adicionales de findOneAndUpdate (opcional)
+         * @param {ClientSession} session - Sesión de transacción (opcional)
+         * @returns Documento actualizado
+         */
+        const defaultOptions = { new: true }; // retorna el documento actualizado
+        const finalOptions = session
+            ? { ...defaultOptions, ...options, session }
+            : { ...defaultOptions, ...options };
+
+        try {
+            const documentoActualizado = await db.Proveedores.findOneAndUpdate(
+                filter,
+                update,
+                finalOptions
+            );
+            return documentoActualizado;
+        } catch (err) {
+            throw new ConnectionDBError(523, `Error modificando los datos${err.message}`);
+        }
     }
 
     static validateBussyIds(id) {

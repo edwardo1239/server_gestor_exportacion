@@ -3,7 +3,6 @@ const path = require('path');
 const { ProcessError } = require('../../Error/ProcessError');
 const { iniciarRedisDB } = require('../../DB/redis/init');
 const { ConnectRedisError } = require('../../Error/ConnectionErrors');
-// const { obtener_datos_lotes_listaEmpaque_cajasSinPallet } = require('../mobile/utils/contenedoresLotes');
 const { TurnoDatarepository } = require('./TurnoData');
 
 const pathIDs = path.join(__dirname, '..', '..', 'inventory', 'seriales.json');
@@ -11,15 +10,14 @@ const inventarioPath = path.join(__dirname, '..', '..', 'inventory', 'inventario
 const inventarioDesverdizadoPath = path.join(__dirname, '..', '..', 'inventory', 'inventarioDesverdizado.json');
 const ordenVaceoPath = path.join(__dirname, '..', '..', 'inventory', 'OrdenDeVaceo.json');
 const inventarioDescartesPath = path.join(__dirname, '..', '..', 'inventory', 'inventariodescarte.json');
-// const cajasSinPalletPath = path.join(__dirname, '..', '..', 'inventory', 'cajasSinPallet.json');
 const observacionesCalidadPath = path.join(__dirname, '..', '..', 'constants', 'observacionesCalidad.json');
+const canastillasPath = path.join(__dirname, '..', '..', 'inventory', 'canastillas.json');
 
 
 let inventarioFleg = false; // bandera que indica que el inventario se esta escribiendo
 let inventarioDesFleg = false; // bandera que indica que el inventarioDesverdizado se esta escribiendo
 let ordenVaceoFlag = false; //bandera que indica que la orden de vaceo se esta escribiendo
 let inventarioDescarteFlag = false; // bandera que indica que el inventario descarte se está escribiendo
-// let cajasSinPalletFlag = false;
 
 const clientePromise = iniciarRedisDB();
 
@@ -42,9 +40,21 @@ class VariablesDelSistema {
       }
       return enf;
     } catch (e) {
-      throw new ProcessError(406, `Error creando la EF1: ${e.message}`)
+      throw new ProcessError(506, `Error creando la EF1: ${e.message}`)
     }
   }
+  static async incrementarEF1() {
+    try {
+      const idsJSON = fs.readFileSync(pathIDs);
+      const ids = JSON.parse(idsJSON);
+      ids.enf += 1;
+      const newidsJSON = JSON.stringify(ids);
+      fs.writeFileSync(pathIDs, newidsJSON);
+    } catch (err) {
+      throw new ProcessError(523, `Error incrementando el EF1 ${err.message}`)
+    }
+  }
+
   static async generarEF8(fecha_ingreso = new Date()) {
     try {
 
@@ -62,16 +72,42 @@ class VariablesDelSistema {
       }
       return enf;
     } catch (e) {
-      throw new ProcessError(406, `Error creando la EF1: ${e.message}`)
+      throw new ProcessError(506, `Error creando la EF1: ${e.message}`)
     }
   }
+  static async incrementarEF8() {
+    try {
+      const idsJSON = fs.readFileSync(pathIDs);
+      const ids = JSON.parse(idsJSON);
+      ids.ef8 += 1;
+      const newidsJSON = JSON.stringify(ids);
+      fs.writeFileSync(pathIDs, newidsJSON);
+    } catch (err) {
+      throw new ProcessError(411, `Error incrementando el EF1 ${err.message}`)
+    }
+  }
+
+  static async modificar_serial(enf, key) {
+    try {
+      const idsJSON = fs.readFileSync(pathIDs);
+      const ids = JSON.parse(idsJSON);
+      ids[key] = enf;
+      const newidsJSON = JSON.stringify(ids);
+      fs.writeFileSync(pathIDs, newidsJSON);
+    } catch (err) {
+      throw new ProcessError(523, `Error modificando el ${key} ${err.message}`)
+    }
+  }
+
+
+
   static async procesarEF1(lote) {
     try {
       const cliente = await clientePromise;
 
       await this.modificar_predio_proceso(lote, cliente);
       await this.modificar_predio_proceso_descartes(lote, cliente);
-      await this.modificar_predio_proceso_listaEmpaque(lote, cliente);
+      // await this.modificar_predio_proceso_listaEmpaque(lote, cliente);
 
     } catch (err) {
       throw new ConnectRedisError(419, `Error con la conexion con redis ${err.name}`)
@@ -89,7 +125,7 @@ class VariablesDelSistema {
       const predioData = await cliente.hGetAll("predioProcesando");
       return predioData
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis ${err.name}`)
+      throw new ConnectRedisError(531, `Error con la conexion con redis ${err.name}`)
     }
   }
   static async obtenerEF1Descartes() {
@@ -104,7 +140,7 @@ class VariablesDelSistema {
       const predioData = await cliente.hGetAll("predioProcesandoDescartes");
       return predioData
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis ${err.name}`)
+      throw new ConnectRedisError(531, `Error obtenerEF1 descartes ${err.type}`)
     }
   }
   static async obtener_EF1_listaDeEmpaque() {
@@ -122,29 +158,8 @@ class VariablesDelSistema {
       throw new ConnectRedisError(419, `Error con la conexion con redis ${err.name}`)
     }
   }
-  static async incrementarEF1() {
-    try {
-      const idsJSON = fs.readFileSync(pathIDs);
-      const ids = JSON.parse(idsJSON);
-      ids.enf += 1;
-      const newidsJSON = JSON.stringify(ids);
-      fs.writeFileSync(pathIDs, newidsJSON);
-    } catch (err) {
-      throw new ProcessError(411, `Error incrementando el EF1 ${err.message}`)
-    }
-  }
-  static async incrementarEF8() {
 
-    try {
-      const idsJSON = fs.readFileSync(pathIDs);
-      const ids = JSON.parse(idsJSON);
-      ids.ef8 += 1;
-      const newidsJSON = JSON.stringify(ids);
-      fs.writeFileSync(pathIDs, newidsJSON);
-    } catch (err) {
-      throw new ProcessError(411, `Error incrementando el EF1 ${err.message}`)
-    }
-  }
+
   static async incrementar_codigo_celifrut() {
     /**
    * Funcion que aumenta en 1 el serial del codigo idCelifrut que esta almacenado en el archivo json
@@ -160,7 +175,7 @@ class VariablesDelSistema {
       const newidsJSON = JSON.stringify(ids);
       fs.writeFileSync(pathIDs, newidsJSON);
     } catch (err) {
-      throw new ProcessError(411, `Error incrementando el serial celifrut ${err.message}`)
+      throw new ProcessError(511, `Error incrementando el serial celifrut ${err.message}`)
     }
 
   }
@@ -196,6 +211,8 @@ class VariablesDelSistema {
    * @throws {ConnectRedisError} - Lanza un error si ocurre un problema con la conexión a Redis.
    */
     try {
+      const clientePromise = iniciarRedisDB();
+      cliente = await clientePromise;
       await cliente.hSet("predioProcesandoDescartes", {
         _id: lote._id.toString(),
         enf: lote.enf,
@@ -205,38 +222,14 @@ class VariablesDelSistema {
       });
 
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis predio descarte: ${err.name}`)
-    }
-  }
-  static modificar_predio_proceso_listaEmpaque = async (lote) => {
-    /**
-   * Función que modifica la información del predio en proceso lista de empaque en Redis.
-   *
-   * @param {Object} lote - El lote con la información a actualizar.
-   * @returns {Promise<void>} - Promesa que se resuelve cuando la modificación ha terminado.
-   * @throws {ConnectRedisError} - Lanza un error si ocurre un problema con la conexión a Redis.
-   */
-    let cliente
-    try {
-      const clientePromise = iniciarRedisDB();
-      cliente = await clientePromise;
-      await cliente.hSet("predioProcesandoListaEmpaque", {
-        _id: lote._id.toString(),
-        enf: lote.enf,
-        predio: lote.predio._id.toString(),
-        nombrePredio: lote.predio.PREDIO,
-        tipoFruta: lote.tipoFruta,
-      });
-
-    } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis predio lista de empaque: ${err.name}`)
+      throw new ConnectRedisError(532, `Error con la conexion con redis predio descarte: ${err.name}`)
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
+
   static async generar_codigo_celifrut() {
     /**
      * Se genera el codigo celifrut , es un codigo que se asigna a un lote que se crea 
@@ -251,7 +244,7 @@ class VariablesDelSistema {
 
       return 'Celifrut-' + ids.idCelifrut;
     } catch (err) {
-      throw new ProcessError(406, `Error creando el codigo celifrut: ${err.message}`)
+      throw new ProcessError(506, `Error creando el codigo celifrut: ${err.message}`)
     }
   }
   static async generar_codigo_informe_calidad() {
@@ -280,7 +273,7 @@ class VariablesDelSistema {
       }
       return calidad;
     } catch (e) {
-      throw new ProcessError(406, `Error creando el codigo calidad: ${e.message}`)
+      throw new ProcessError(506, `Error creando el codigo calidad: ${e.message}`)
     }
   }
   static async incrementar_codigo_informes_calidad() {
@@ -420,7 +413,7 @@ class VariablesDelSistema {
       return flagEliminarItem;
 
     } catch (err) {
-      throw new ProcessError(418, `Error modificando datos del inventario json ${err.name}`)
+      throw new ProcessError(518, `Error modificando datos del inventario json ${err.name}`)
     } finally {
       inventarioFleg = false
     }
@@ -555,8 +548,7 @@ class VariablesDelSistema {
       fs.writeFileSync(ordenVaceoPath, newOrdenVaceoJSON);
 
     } catch (err) {
-      console.log(err)
-      throw new ProcessError(410, "Error Obteniendo datos de la orden de vaceo")
+      throw new ProcessError(410, "Error Obteniendo datos de la orden de vaceo" + err.message)
     } finally {
       ordenVaceoFlag = false
     }
@@ -584,119 +576,6 @@ class VariablesDelSistema {
     }
   }
 
-  // #region Lista de empaque
-  // static async ingresar_item_cajas_sin_pallet(item) {
-  //   /**
-  //  * Función que ingresa un item a la lista de cajas sin pallet.
-  //  *
-  //  * @param {Object} item - Objeto del item a agregar a la lista de cajas sin pallet.
-  //  * @returns {Promise<void>} - Promesa que se resuelve cuando la operación se completa.
-  //  * @throws {ProcessError} - Lanza un error si ocurre un problema al guardar los datos de las cajas sin pallet.
-  //  */
-  //   try {
-  //     if (cajasSinPalletFlag) throw new ProcessError(413, "Error el archivo se esta escribiendo")
-
-  //     cajasSinPalletFlag = true
-  //     const cajasSinPalletJSON = fs.readFileSync(cajasSinPalletPath);
-  //     const cajasSinPallet = JSON.parse(cajasSinPalletJSON);
-
-  //     cajasSinPallet.push(item)
-
-  //     const newCajasSinPalletJSON = JSON.stringify(cajasSinPallet);
-  //     fs.writeFileSync(cajasSinPalletPath, newCajasSinPalletJSON);
-  //   } catch (err) {
-  //     throw new ProcessError(410, `Error Guardando datos de las cajas sin pallet: ${err.name}`)
-  //   } finally {
-  //     cajasSinPalletFlag = false
-  //   }
-  // }
-  // static async obtener_cajas_sin_pallet() {
-  //   /**
-  //  * Función que obtiene la lista de cajas sin pallet.
-  //  *
-  //  * @returns {Promise<Array>} - Promesa que resuelve a un array con la lista de cajas sin pallet.
-  //  * @throws {ProcessError} - Lanza un error si ocurre un problema al obtener los datos de las cajas sin pallet.
-  //  */
-  //   try {
-  //     if (cajasSinPalletFlag) throw new ProcessError(413, "Error el archivo se esta escribiendo")
-
-  //     cajasSinPalletFlag = true
-  //     const cajasSinPalletJSON = fs.readFileSync(cajasSinPalletPath);
-  //     const cajasSinPallet = JSON.parse(cajasSinPalletJSON);
-
-  //     const data = await obtener_datos_lotes_listaEmpaque_cajasSinPallet(cajasSinPallet);
-  //     return data
-  //   } catch (err) {
-  //     throw new ProcessError(410, `Error obteniendo datos de las cajas sin pallet: ${err.name}`)
-  //   } finally {
-  //     cajasSinPalletFlag = false
-  //   }
-  // }
-  // static async eliminar_items_cajas_sin_pallet(items) {
-  //   /**
-  //  * Elimina elementos específicos de las cajas sin pallet.
-  //  *
-  //  * @param {Array<number>} items - Índices de los elementos a eliminar de las cajas sin pallet.
-  //  * @returns {Promise<Array<Object>>} - Promesa que resuelve al arreglo de cajas eliminadas.
-  //  * @throws {ProcessError} - Lanza un error si ocurre un problema al eliminar los elementos o si el archivo está siendo escrito.
-  //  */
-  //   try {
-  //     if (cajasSinPalletFlag) throw new ProcessError(413, "Error el archivo se esta escribiendo")
-  //     cajasSinPalletFlag = true
-
-  //     const cajasSinPalletJSON = fs.readFileSync(cajasSinPalletPath);
-  //     const cajasSinPallet = JSON.parse(cajasSinPalletJSON);
-  //     let cajas = [];
-
-  //     for (let i = 0; i < items.length; i++) {
-  //       cajas.push(cajasSinPallet.splice(items[i], 1)[0]);
-  //     }
-
-  //     const newCajasSinPalletJSON = JSON.stringify(cajasSinPallet);
-  //     fs.writeFileSync(cajasSinPalletPath, newCajasSinPalletJSON);
-
-  //     return cajas;
-  //   } catch (err) {
-  //     throw new ProcessError(410, `Error eliminando los items ${err.message}`);
-  //   } finally {
-  //     cajasSinPalletFlag = false;
-  //   }
-  // }
-  // static async restar_items_cajas_sin_pallet(item, cajas) {
-  //   /**
-  //  * Resta una cantidad específica de cajas de un ítem en las cajas sin pallet.
-  //  *
-  //  * @param {number} item - Índice del ítem al que se le restarán las cajas.
-  //  * @param {number} cajas - Cantidad de cajas a restar del ítem.
-  //  * @returns {Promise<Object>} - Promesa que resuelve al objeto del ítem modificado.
-  //  * @throws {ProcessError} - Lanza un error si ocurre un problema al restar las cajas o si el archivo está siendo escrito.
-  //  */
-  //   try {
-  //     if (cajasSinPalletFlag) throw new ProcessError(413, "Error el archivo se esta escribiendo")
-  //     cajasSinPalletFlag = true
-
-  //     const cajasSinPalletJSON = fs.readFileSync(cajasSinPalletPath);
-  //     const cajasSinPallet = JSON.parse(cajasSinPalletJSON);
-
-  //     let newItem = JSON.parse(JSON.stringify(cajasSinPallet[item]));
-  //     newItem.cajas = cajas;
-
-  //     cajasSinPallet[item].cajas -= cajas
-
-  //     if (cajasSinPallet[item].cajas <= 0) {
-  //       cajasSinPallet.splice(item, 1)[0];
-  //     }
-
-  //     const newCajasSinPalletJSON = JSON.stringify(cajasSinPallet);
-  //     fs.writeFileSync(cajasSinPalletPath, newCajasSinPalletJSON);
-
-  //     return newItem;
-  //   } catch (err) {
-  //     throw new ProcessError(410, `Error eliminando los items ${err.message}`);
-  //   } finally {
-  //     cajasSinPalletFlag = false;
-  //   }
-  // }
   // #region inventario descartes
   static async obtener_inventario_descartes() {
     /**
@@ -714,7 +593,7 @@ class VariablesDelSistema {
       return inventario
 
     } catch (err) {
-      throw new ProcessError(418, `Error modificando datos del inventario descarte json: ${err.name}`)
+      throw new ProcessError(518, `Error modificando datos del inventario descarte json: ${err.name}`)
     } finally {
       inventarioDescarteFlag = false
     }
@@ -774,7 +653,7 @@ class VariablesDelSistema {
       fs.writeFileSync(inventarioDescartesPath, newInventarioJSON);
 
     } catch (err) {
-      throw new ProcessError(418, `Error modificando datos del inventario descarte json ${err.name}`)
+      throw new ProcessError(518, `Error modificando datos del inventario descarte json ${err.name}`)
     } finally {
       inventarioDescarteFlag = false
     }
@@ -782,7 +661,6 @@ class VariablesDelSistema {
   static async restar_fruta_inventario_descarte(kilos, tipoFruta) {
     if (inventarioDescarteFlag) throw new ProcessError(413, "Error el archivo se esta escribiendo");
     try {
-      console.log(kilos)
       inventarioDescarteFlag = true
       let inventoryOut = {}
       const inventarioJSON = fs.readFileSync(inventarioDescartesPath);
@@ -875,8 +753,7 @@ class VariablesDelSistema {
       return inventoryOut;
 
     } catch (err) {
-      console.log(err.message)
-      throw new ProcessError(418, `Error modificando las variables del sistema: ${err.message}`)
+      throw new ProcessError(518, `Error modificando inventario descarte: ${err.message}`)
     } finally {
       inventarioDescarteFlag = false
 
@@ -911,7 +788,7 @@ class VariablesDelSistema {
       await cliente.set("descarteEncerado", 0);
       await this.modificar_predio_proceso(lote, cliente)
       await this.modificar_predio_proceso_descartes(lote, cliente)
-      await this.modificar_predio_proceso_listaEmpaque(lote, cliente)
+      // await this.modificar_predio_proceso_listaEmpaque(lote, cliente)
 
     } catch (err) {
       throw new ProcessError(418, `Error modificando las variables del sistema: ${err.name}`)
@@ -966,7 +843,7 @@ class VariablesDelSistema {
       });
 
     } catch (err) {
-      throw new ProcessError(418, `Error modificando las variables del sistema: ${err.name}`)
+      throw new ProcessError(518, `Error modificando las variables del sistema: ${err.name}`)
     }
   }
 
@@ -985,12 +862,11 @@ class VariablesDelSistema {
 
       return { kilosProcesadosNaranja, kilosProcesadosLimon };
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis obteniendo kilosProcesados: ${err.name}`)
+      throw new ConnectRedisError(531, `Error con la conexion con redis obteniendo kilosProcesados: ${err.name}`)
 
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1007,12 +883,11 @@ class VariablesDelSistema {
 
       return { kilosExportacionNaranja, kilosExportacionLimon };
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis obteniendo kilosProcesados: ${err.name}`)
+      throw new ConnectRedisError(531, `Error con la conexion con redis obteniendo kilosProcesados: ${err.name}`)
 
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1040,12 +915,11 @@ class VariablesDelSistema {
       }
       return kilosProcesados;
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis sumando kilosProcesados: ${err.name}`)
+      throw new ConnectRedisError(532, `Error con la conexion con redis sumando kilosProcesados: ${err.name}`)
 
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1058,7 +932,6 @@ class VariablesDelSistema {
 
       // Obtener los kilos procesados de Redis
       let kilosProcesados = await cliente.get(key);
-      console.log("Fruta procesada antes de sumar:", kilosProcesados);
 
       // Si no existe, inicializar como un objeto vacío
       if (kilosProcesados === null) {
@@ -1068,7 +941,6 @@ class VariablesDelSistema {
         kilosProcesados = JSON.parse(kilosProcesados);
       }
 
-      console.log("Fruta procesada antes de sumar:", kilosProcesados);
 
       // Convertir el valor a número o inicializar si es null
       kilosProcesados[tipoFruta] = kilosProcesados[tipoFruta] ? parseInt(kilosProcesados[tipoFruta], 10) : 0;
@@ -1082,15 +954,51 @@ class VariablesDelSistema {
       return kilosProcesados;
 
     } catch (err) {
-      console.error("Error socket: ", err);
       throw new ConnectRedisError(
-        419,
+        532,
         `Error con la conexión con Redis sumando kilos procesados: ${err.message}`
       );
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log("Cerrando la conexión con Redis...");
+      }
+    }
+  }
+  static async ingresar_kilos_vaciados(kilos) {
+    let cliente;
+    try {
+      const clientePromise = iniciarRedisDB();
+      cliente = await clientePromise;
+      const key = "kilosVaciadosHoy";
+
+      // Obtener los kilos procesados de Redis
+      let kilosProcesados = await cliente.get(key);
+
+      // Si no existe, inicializar como un objeto vacío
+      if (kilosProcesados === null) {
+        kilosProcesados = 0;
+      }
+
+      // Convertir el valor a número o inicializar si es null
+      kilosProcesados = kilosProcesados ? parseInt(kilosProcesados, 10) : 0;
+
+      // Sumar los nuevos kilos
+      kilosProcesados += kilos;
+
+      // Actualizar el valor en Redis
+      await cliente.set(key, kilosProcesados);
+
+      return kilosProcesados;
+
+    } catch (err) {
+      console.error("Error socket: ", err);
+      throw new ConnectRedisError(
+        419,
+        `Error con la conexión con Redis sumando kilos vaceados: ${err.message}`
+      );
+    } finally {
+      if (cliente) {
+        cliente.quit();
       }
     }
   }
@@ -1137,7 +1045,6 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1150,7 +1057,6 @@ class VariablesDelSistema {
 
       // Obtener los kilos procesados de Redis
       let kilosProcesados = await cliente.get(key);
-      console.log("Fruta procesada antes de sumar:", kilosProcesados);
 
       // Si no existe, inicializar como un objeto vacío
       if (kilosProcesados === null) {
@@ -1160,7 +1066,6 @@ class VariablesDelSistema {
         kilosProcesados = JSON.parse(kilosProcesados);
       }
 
-      console.log("Fruta procesada antes de sumar:", kilosProcesados);
 
       // Convertir el valor a número o inicializar si es null
       kilosProcesados[tipoFruta] = kilosProcesados[tipoFruta] ? parseInt(kilosProcesados[tipoFruta], 10) : 0;
@@ -1182,7 +1087,6 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log("Cerrando la conexión con Redis...");
       }
     }
   }
@@ -1203,10 +1107,13 @@ class VariablesDelSistema {
       await cliente.set("kilosProcesadosHoyNaranja", "0");
       await cliente.set("kilosExportacionHoyLimon", "0");
       await cliente.set("kilosExportacionHoyNaranja", "0");
+
+      await cliente.set("kilosVaciadosHoy", "0");
       await cliente.set("fechaInicioProceso", '');
       await cliente.set("statusProceso", 'off');
       await cliente.set("statusProceso", 'off');
       await cliente.set("kilosProcesadosHoy", '{}');
+      await cliente.set("kilosExportacionHoy", '{}');
 
     } catch (err) {
       throw new ConnectRedisError(419, `Error con la conexion con redis sumar exportacion: ${err.name}`)
@@ -1214,7 +1121,6 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1234,12 +1140,11 @@ class VariablesDelSistema {
       const tiempoPausaHoy = await cliente.get("tiempoPausaHoy");
       return { fechaInicio: fecha, tiempoTrabajado: tiempotrabajado, tiempoPausaHoy: tiempoPausaHoy }
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis sumar exportacion: ${err.name}`)
+      throw new ConnectRedisError(531, `Error redis: ${err.name}`)
 
     } finally {
       if (cliente) {
         cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1260,11 +1165,10 @@ class VariablesDelSistema {
       // Redis almacena los valores como strings, por lo que puede ser necesario hacer una conversión
       return status;
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con status proceso: ${err.name}`);
+      throw new ConnectRedisError(531, `Error redis status proceso: ${err.name}`);
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1288,7 +1192,6 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1308,12 +1211,11 @@ class VariablesDelSistema {
       return hoy;
 
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con redis obteniendo kilosProcesados: ${err.name}`)
+      throw new ConnectRedisError(532, `Error redis: ${err.name}`)
 
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1332,11 +1234,9 @@ class VariablesDelSistema {
         horaFin: { $exists: false }
       };
       const turno = await TurnoDatarepository.find_turno({ query: query });
-      console.log(turno)
       if (!turno || turno.length === 0) {
         throw new Error("No se encontró el elemento");
       }
-      console.log(turno)
       //se obtiene el tiempo trabajado en segundos
       const lenPausas = turno[0].pausaProceso.length;
       if (lenPausas === 0) {
@@ -1366,11 +1266,10 @@ class VariablesDelSistema {
       await cliente.set("tiempoTrabajadoHoy", String(totalsegundos))
 
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexión con status proceso: ${err.name}`);
+      throw new ConnectRedisError(532, `Error set hora pausa proceso: ${err.name}`);
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1411,17 +1310,15 @@ class VariablesDelSistema {
 
       await TurnoDatarepository.modificar_turno(turno[0]._id.toString(), change);
 
-      console.log(totalsegundos)
       await cliente.set("tiempoPausaHoy", String(totalsegundos))
       await cliente.set("statusProceso", 'on');
 
       return;
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexión con status proceso: ${err.name}`);
+      throw new ConnectRedisError(532, `Error redis hora reanudar: ${err.name}`);
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1441,7 +1338,6 @@ class VariablesDelSistema {
       if (turno.length === 0) {
         throw new Error("No se encontro elemento")
       }
-      console.log("aqui paso")
 
       let totalsegundos
       let fechaInicio
@@ -1476,11 +1372,10 @@ class VariablesDelSistema {
 
       return
     } catch (err) {
-      throw new ConnectRedisError(419, `Error con la conexion con status proceso: ${err.message}`);
+      throw new ConnectRedisError(532, `Error redis set hora inicio : ${err.message}`);
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
     }
   }
@@ -1512,7 +1407,6 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
       }
 
     }
@@ -1545,7 +1439,34 @@ class VariablesDelSistema {
     } finally {
       if (cliente) {
         await cliente.quit();
-        console.log('Cerrando la conexión con Redis...');
+      }
+
+    }
+  }
+  static async get_kilos_vaciados_hoy() {
+    let cliente;
+
+    try {
+      const clientePromise = iniciarRedisDB();
+      cliente = await clientePromise;
+      const key = "kilosVaciadosHoy";
+
+      // Verificar si la clave existe
+      let kilos_procesados = await cliente.get(key);
+
+      // Si no existe, crearla como un arreglo vacío (JSON)
+      if (kilos_procesados === null) {
+        await cliente.set(key, 0);
+        kilos_procesados = 0; // Retorna el arreglo vacío
+      }
+
+      return kilos_procesados;
+
+    } catch (err) {
+      throw new ConnectRedisError(419, `Error con la conexion con status proceso: ${err.name}`);
+    } finally {
+      if (cliente) {
+        await cliente.quit();
       }
 
     }
@@ -1559,7 +1480,40 @@ class VariablesDelSistema {
 
       return observaciones;
     } catch (err) {
-      throw new ProcessError(410, `Error Obteniendo observaciones calidad ${err.name}`)
+      throw new ProcessError(522, `Error Obteniendo observaciones calidad ${err.name}`)
+    }
+  }
+
+  //canastillas
+  static async obtener_canastillas_inventario() {
+    try {
+      const canastillasJSON = fs.readFileSync(canastillasPath);
+      const canastillas = JSON.parse(canastillasJSON);
+      return canastillas;
+    } catch (err) {
+      throw new ProcessError(522, `Error Obteniendo inventario canastillas ${err.name}`)
+    }
+  }
+  static async modificar_canastillas_inventario(nCanastillas, tipo) {
+    try {
+      const canastillasJSON = fs.readFileSync(canastillasPath);
+      const canastillas = JSON.parse(canastillasJSON);
+      canastillas[tipo] += nCanastillas;
+      const newCanastillasJSON = JSON.stringify(canastillas);
+      fs.writeFileSync(canastillasPath, newCanastillasJSON);
+    } catch (err) {
+      throw new ProcessError(523, `Error modificando el inventario canastillas ${err.message}`)
+    }
+  }
+  static async set_canastillas_inventario(nCanastillas, tipo) {
+    try {
+      const canastillasJSON = fs.readFileSync(canastillasPath);
+      const canastillas = JSON.parse(canastillasJSON);
+      canastillas[tipo] = nCanastillas;
+      const newCanastillasJSON = JSON.stringify(canastillas);
+      fs.writeFileSync(canastillasPath, newCanastillasJSON);
+    } catch (err) {
+      throw new ProcessError(523, `Error modificando el inventario canastillas ${err.message}`)
     }
   }
 }

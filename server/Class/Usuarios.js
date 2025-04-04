@@ -66,54 +66,49 @@ class UsuariosRepository {
 
         } catch (err) {
             console.log(err)
-            throw new ConnectionDBError(408, `Error obteniendo lotes ${err.message}`);
+            throw new ConnectionDBError(522, `Error get user ${err.message}`);
         }
     }
-    static async add_cargo(data, user) {
-        const session = await db.Cargo.startSession();
-        session.startTransaction();
+    static async add_cargo(data) {
         try {
             const cargo = new db.Cargo(data);
             const saveCargo = await cargo.save();
-            let record = new db.recordCargo({
-                operacionRealizada: 'crearCargo',
-                user: user.user,
-                documento: saveCargo
-            })
-            await record.save();
+            // let record = new db.recordCargo({
+            //     operacionRealizada: 'crearCargo',
+            //     user: user.user,
+            //     documento: saveCargo
+            // })
+            // await record.save();
 
-            await session.commitTransaction();
-            session.endSession();
+
 
             return saveCargo
         } catch (err) {
-            await session.abortTransaction();
-            session.endSession();
-            throw new PostError(409, `Error agregando cargo ${err.message}`);
+            throw new PostError(521, `Error agregando cargo ${err.message}`);
         }
     }
-    static async eliminar_cargo(_id, user) {
-        const session = await db.Cargo.startSession();
-        session.startTransaction();
-        try {
-            const cargo = await db.Cargo.findByIdAndDelete(_id)
-            const cargoObj = new Object(cargo.toObject());
-            let record = new db.recordCargo({
-                operacionRealizada: 'Eliminar cargo',
-                user: user.user,
-                documento: cargoObj
-            })
-            await record.save();
+    // static async eliminar_cargo(_id, user) {
+    //     const session = await db.Cargo.startSession();
+    //     session.startTransaction();
+    //     try {
+    //         const cargo = await db.Cargo.findByIdAndDelete(_id)
+    //         const cargoObj = new Object(cargo.toObject());
+    //         let record = new db.recordCargo({
+    //             operacionRealizada: 'Eliminar cargo',
+    //             user: user.user,
+    //             documento: cargoObj
+    //         })
+    //         await record.save();
 
-            await session.commitTransaction();
-            session.endSession();
-            return cargo
-        } catch (err) {
-            await session.abortTransaction();
-            session.endSession();
-            throw new PostError(409, `Error eliminando cargo ${err.message}`);
-        }
-    }
+    //         await session.commitTransaction();
+    //         session.endSession();
+    //         return cargo
+    //     } catch (err) {
+    //         await session.abortTransaction();
+    //         session.endSession();
+    //         throw new PostError(409, `Error eliminando cargo ${err.message}`);
+    //     }
+    // }
     static async modificar_cargo(id, query, action, user) {
         this.validateBussyCargoIds(id)
         const session = await db.Cargo.startSession();
@@ -139,28 +134,78 @@ class UsuariosRepository {
             bussyIdsCargo.delete(id);
         }
     }
-    static async add_user(data, user) {
-        const session = await db.Usuarios.startSession();
-        session.startTransaction();
-        try {
+    static async actualizar_cargo(filter, update, options = {}, session = null) {
+        /**
+         * Función genérica para actualizar documentos en MongoDB usando Mongoose
+         *
+         * @param {Model} model - Modelo Mongoose (db.cargos, etc.)
+         * @param {Object} filter - Objeto de filtrado para encontrar el documento
+         * @param {Object} update - Objeto con los campos a actualizar
+         * @param {Object} options - Opciones adicionales de findOneAndUpdate (opcional)
+         * @param {ClientSession} session - Sesión de transacción (opcional)
+         * @returns Documento actualizado
+         */
+        const defaultOptions = { new: true }; // retorna el documento actualizado
+        const finalOptions = session
+            ? { ...defaultOptions, ...options, session }
+            : { ...defaultOptions, ...options };
 
+        try {
+            const documentoActualizado = await db.Cargo.findOneAndUpdate(
+                filter,
+                update,
+                finalOptions
+            );
+            return documentoActualizado;
+        } catch (err) {
+            throw new ConnectionDBError(523, `Error modificando los datos${err.message}`);
+
+        }
+    }
+    static async eliminar_cargo(filter, options = {}, session = null) {
+        /**
+         * Función genérica para eliminar documentos en MongoDB usando Mongoose
+         *
+         * @param {Object} filter - Objeto de filtrado para encontrar el documento
+         * @param {Object} options - Opciones adicionales de findOneAndDelete (opcional)
+         * @param {ClientSession} session - Sesión de transacción (opcional)
+         * @returns Documento eliminado
+         */
+        const finalOptions = session
+            ? { ...options, session }
+            : { ...options };
+
+        try {
+            const documentoEliminado = await db.Cargo.findOneAndDelete(
+                filter,
+                finalOptions
+            );
+            return documentoEliminado;
+        } catch (err) {
+            throw new ConnectionDBError(527, `Error eliminando el documento: ${err.message}`);
+        }
+    }
+
+
+
+
+
+
+    static async add_user(data) {
+        try {
             const usuario = new db.Usuarios(data);
             const saveUsuario = await usuario.save();
-            let record = new db.recordUsuario({
-                operacionRealizada: 'crearUsuario',
-                user: user,
-                documento: saveUsuario
-            })
-            await record.save();
-
-            await session.commitTransaction();
-            session.endSession();
+            // let record = new db.recordUsuario({
+            //     operacionRealizada: 'crearUsuario',
+            //     user: user,
+            //     documento: saveUsuario
+            // })
+            // await record.save();
 
             return saveUsuario
         } catch (err) {
-            await session.commitTransaction();
-            session.endSession();
-            throw new PostError(409, `Error agregando usuario ${err.message}`);
+
+            throw new PostError(521, `Error agregando usuario ${err.message}`);
         }
     }
     static async modificar_usuario(id, query, action, user, __v) {
@@ -210,6 +255,34 @@ class UsuariosRepository {
             bussyIdsUsuario.delete(id);
         }
     }
+    static async actualizar_usuario(filter, update, options = {}, session = null) {
+        /**
+         * Función genérica para actualizar documentos en MongoDB usando Mongoose
+         *
+         * @param {Model} model - Modelo Mongoose (db.cargos, etc.)
+         * @param {Object} filter - Objeto de filtrado para encontrar el documento
+         * @param {Object} update - Objeto con los campos a actualizar
+         * @param {Object} options - Opciones adicionales de findOneAndUpdate (opcional)
+         * @param {ClientSession} session - Sesión de transacción (opcional)
+         * @returns Documento actualizado
+         */
+        const defaultOptions = { new: true }; // retorna el documento actualizado
+        const finalOptions = session
+            ? { ...defaultOptions, ...options, session }
+            : { ...defaultOptions, ...options };
+
+        try {
+            const documentoActualizado = await db.Usuarios.findOneAndUpdate(
+                filter,
+                update,
+                finalOptions
+            );
+            return documentoActualizado;
+        } catch (err) {
+            throw new ConnectionDBError(523, `Error modificando los datos${err.message}`);
+
+        }
+    }
     static async add_volante_calidad(data) {
         /**
          * Funcion que agrega una fila a volante calidad a la base de datos lote de mongoDB
@@ -242,19 +315,6 @@ class UsuariosRepository {
         }
     }
     static async obtener_volante_calidad(options = {}) {
-        /**
-        * Funcion que obtiene los formularios de volante calidad de la base de datos de MongoDB.
-        *
-        * @param {Object} options - Objeto de configuración para obtener los cargos.
-        * @param {Array<string>} [options.ids=[]] - Array de IDs de los formularios.
-        * @param {Object} [options.query={}] - Filtros adicionales para la consulta.
-        * @param {Object} [options.select={}] - Campos a seleccionar en los documentos obtenidos.
-        * @param {Object} [options.sort={ createdAt: -1 }] - Criterios de ordenación para los resultados.
-        * @param {number} [options.limit=50] - Número máximo de documentos a obtener.
-        * @param {number} [options.skip=0] - Número de documentos a omitir desde el inicio.
-        * @returns {Promise<Array>} - Promesa que resuelve a un array de lotes obtenidos.
-        * @throws {PostError} - Lanza un error si ocurre un problema al obtener los formularios.
-        */
         const {
             ids = [],
             query = {},
@@ -264,31 +324,36 @@ class UsuariosRepository {
             skip = 0,
         } = options;
         try {
-            let volanteCalidadQuery = { ...query };
+            let registroQuery = { ...query };
 
             if (ids.length > 0) {
-                volanteCalidadQuery._id = { $in: ids };
+                registroQuery._id = { $in: ids };
             }
-            const volanteCalidad = await db.VolanteCalidad.find(volanteCalidadQuery)
+
+            const limitToUse = (limit === 0 || limit === 'all') ? 0 : limit;
+
+
+            const volanteCalidad = await db.VolanteCalidad.find(registroQuery)
                 .select(select)
                 .sort(sort)
                 .populate({
                     path: 'operario',
-                    select: 'nombre apellido usuario', // Especifica los campos a seleccionar del documento relacionado
+                    select: 'nombre apellido usuario',
                 })
                 .populate({
                     path: 'responsable',
-                    select: 'nombre apellido usuario', // Especifica los campos a seleccionar del documento relacionado
+                    select: 'nombre apellido usuario',
                 })
-                .limit(limit)
+                .limit(limitToUse)
                 .skip(skip)
                 .exec();
+
 
             return volanteCalidad
 
         } catch (err) {
-            console.log(err)
-            throw new ConnectionDBError(408, `Error obteniendo volante calidad ${err.message}`);
+            throw new ConnectionDBError(522, `Volante calidad -> ${err.message}`);
+
         }
     }
     static async obtener_formularios_higiene_personal(options = {}) {
@@ -325,7 +390,7 @@ class UsuariosRepository {
 
         } catch (err) {
             console.log(err)
-            throw new ConnectionDBError(408, `Error obteniendo formularios higiene personal ${err.message}`);
+            throw new ConnectionDBError(522, `Error obteniendo formularios higiene personal ${err.message}`);
         }
     }
     static async obtener_cantidad_usuarios() {
